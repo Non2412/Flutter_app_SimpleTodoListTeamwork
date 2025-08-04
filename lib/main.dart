@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-// import 'login.dart'; // แก้ไขชื่อไฟล์และใส่ comment ไว้ก่อน
+import 'loing.dart';
 
 void main() {
   runApp(const MainApp());
@@ -12,10 +12,7 @@ class MainApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Simple ToDo List',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        fontFamily: 'Roboto',
-      ),
+      theme: ThemeData(primarySwatch: Colors.blue, fontFamily: 'Roboto'),
       home: const TodoListScreen(),
       debugShowCheckedModeBanner: false, // ซ่อนแบนเนอร์ debug
     );
@@ -88,24 +85,28 @@ class _TodoListScreenState extends State<TodoListScreen> {
         backgroundColor: Colors.blue.shade600,
         foregroundColor: Colors.white,
         elevation: 2,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.login),
+            tooltip: 'Login',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const LoingPage()),
+              );
+            },
+          ),
+        ],
       ),
       body: _todoItems.isEmpty
           ? const Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.checklist,
-                    size: 64,
-                    color: Colors.grey,
-                  ),
+                  Icon(Icons.checklist, size: 64, color: Colors.grey),
                   SizedBox(height: 16),
                   Text(
                     'ยังไม่มีรายการที่ต้องทำ',
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.grey,
-                    ),
+                    style: TextStyle(fontSize: 18, color: Colors.grey),
                   ),
                   Text(
                     'กดปุ่ม + เพื่อเพิ่มรายการใหม่',
@@ -132,10 +133,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
                       style: const TextStyle(fontSize: 16),
                     ),
                     trailing: IconButton(
-                      icon: const Icon(
-                        Icons.delete,
-                        color: Colors.red,
-                      ),
+                      icon: const Icon(Icons.delete, color: Colors.red),
                       onPressed: () => _removeTodoItem(index),
                     ),
                   ),
