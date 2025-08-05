@@ -3,19 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
+import 'package:intl/intl.dart';
+import 'theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   tz.initializeTimeZones();
-
   await NotificationService().init();
-
   runApp(const MainApp());
 }
 
-//
-// ---------------- NOTIFICATION SERVICE ----------------
-//
 class NotificationService {
   static final _notification = FlutterLocalNotificationsPlugin();
 
@@ -46,16 +43,13 @@ class NotificationService {
       title,
       tz.TZDateTime.from(time, tz.local),
       const NotificationDetails(android: androidDetails, iOS: iosDetails),
-      androidAllowWhileIdle: true,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
     );
   }
 }
 
-//
-// ---------------- MAIN APP ----------------
-//
 class MainApp extends StatelessWidget {
   const MainApp({super.key});
 
@@ -63,20 +57,13 @@ class MainApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'ToDo List',
-      theme: ThemeData(
-        primarySwatch: Colors.indigo,
-        scaffoldBackgroundColor: Colors.grey[100],
-        useMaterial3: true,
-      ),
+      theme: myAppTheme,
       home: const TodoListScreen(),
       debugShowCheckedModeBanner: false,
     );
   }
 }
 
-//
-// ---------------- MODEL ----------------
-//
 class TodoItem {
   String title;
   String? description;
@@ -85,9 +72,6 @@ class TodoItem {
   TodoItem({required this.title, this.description, this.dueDate});
 }
 
-//
-// ---------------- MAIN SCREEN ----------------
-//
 class TodoListScreen extends StatefulWidget {
   const TodoListScreen({super.key});
 
@@ -100,34 +84,39 @@ class _TodoListScreenState extends State<TodoListScreen> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descController = TextEditingController();
   DateTime? _selectedDate;
+  final DateFormat _dateFormat = DateFormat('dd/MM/yyyy HH:mm');
 
-  void _addTodoItem() {
+  void _addTodoItem() async {
+    if (_titleController.text.trim().isEmpty) return;
+
     final newItem = TodoItem(
-      title: _titleController.text,
-      description: _descController.text.isNotEmpty
-          ? _descController.text
+      title: _titleController.text.trim(),
+      description: _descController.text.trim().isNotEmpty
+          ? _descController.text.trim()
           : null,
       dueDate: _selectedDate,
     );
 
-    setState(() {
-      _todoItems.add(newItem);
-    });
-
+    setState(() => _todoItems.add(newItem));
     final index = _todoItems.length - 1;
 
     if (newItem.dueDate != null) {
-      NotificationService().schedule(newItem.title, newItem.dueDate!, index);
-      _scheduleSnackBar(context, newItem);
+      await NotificationService().schedule(newItem.title, newItem.dueDate!, index);
+      if (mounted) {
+        _scheduleSnackBar(context, newItem);
+      }
     }
 
-    Navigator.of(context).pop();
-
-    Future.delayed(const Duration(milliseconds: 300), () {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('✅ เพิ่มรายการสำเร็จ')),
-      );
-    });
+    if (mounted) {
+      Navigator.of(context).pop();
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('✅ เพิ่มรายการสำเร็จ')),
+          );
+        }
+      });
+    }
 
     _titleController.clear();
     _descController.clear();
@@ -135,9 +124,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
   }
 
   void _removeTodoItem(int index) {
-    setState(() {
-      _todoItems.removeAt(index);
-    });
+    setState(() => _todoItems.removeAt(index));
   }
 
   void _showAddTodoDialog() {
@@ -147,6 +134,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
         title: const Text('📝 เพิ่มรายการใหม่'),
         content: SingleChildScrollView(
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: _titleController,
@@ -167,10 +155,8 @@ class _TodoListScreenState extends State<TodoListScreen> {
               ElevatedButton.icon(
                 onPressed: () async {
                   final picked = await showDateTimePicker(context);
-                  if (picked != null) {
-                    setState(() {
-                      _selectedDate = picked;
-                    });
+                  if (picked != null && mounted) {
+                    setState(() => _selectedDate = picked);
                   }
                 },
                 icon: const Icon(Icons.alarm),
@@ -178,9 +164,9 @@ class _TodoListScreenState extends State<TodoListScreen> {
               ),
               if (_selectedDate != null)
                 Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
+                  padding: const EdgeInsets.only(top: 8),
                   child: Text(
-                    '⏰ แจ้งเตือน: ${_selectedDate.toString()}',
+                    '⏰ แจ้งเตือน: ${_dateFormat.format(_selectedDate!)}',
                     style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                 ),
@@ -189,7 +175,12 @@ class _TodoListScreenState extends State<TodoListScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () {
+              _titleController.clear();
+              _descController.clear();
+              _selectedDate = null;
+              Navigator.of(context).pop();
+            },
             child: const Text('ยกเลิก'),
           ),
           ElevatedButton(
@@ -206,7 +197,6 @@ class _TodoListScreenState extends State<TodoListScreen> {
 
     final now = DateTime.now();
     final delay = item.dueDate!.difference(now);
-
     if (delay.isNegative) return;
 
     Timer(delay, () {
@@ -218,52 +208,148 @@ class _TodoListScreenState extends State<TodoListScreen> {
     });
   }
 
+  // ฟังก์ชันสำหรับเลือกรูปภาพตามเวลา
+  Widget _getTimeIcon(TodoItem item) {
+    if (item.dueDate == null) {
+      // ถ้าไม่มีเวลา ให้แสดงไอคอน checkbox เหมือนเดิม
+      return const Icon(Icons.check_box_outline_blank, size: 28);
+    }
+
+    final hour = item.dueDate!.hour;
+    
+    // เวลา 6:00-17:59 แสดงดวงอาทิตย์
+    // เวลา 18:00-5:59 แสดงดวงจันทร์
+    if (hour >= 6 && hour <= 17) {
+      // ใช้ Image.asset สำหรับรูปดวงอาทิตย์
+      return Image.asset(
+        'assets/images/sun.png',
+        width: 32,
+        height: 32,
+        errorBuilder: (context, error, stackTrace) {
+          // ถ้าโหลดรูปไม่ได้ ให้แสดงไอคอนแทน
+          return const Icon(Icons.wb_sunny, size: 28, color: Colors.orange);
+        },
+      );
+    } else {
+      // ใช้ Image.asset สำหรับรูปดวงจันทร์
+      return Image.asset(
+        'assets/images/moon.png',
+        width: 32,
+        height: 32,
+        errorBuilder: (context, error, stackTrace) {
+          // ถ้าโหลดรูปไม่ได้ ให้แสดงไอคอนแทน
+          return const Icon(Icons.nightlight_round, size: 28, color: Colors.indigo);
+        },
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('📋 To-Do List'),
-        centerTitle: true,
-      ),
-      body: _todoItems.isEmpty
-          ? const Center(
-              child: Text(
-                'ยังไม่มีรายการ',
-                style: TextStyle(fontSize: 18, color: Colors.grey),
-              ),
-            )
-          : ListView.separated(
-              itemCount: _todoItems.length,
-              separatorBuilder: (_, __) => const Divider(height: 0),
-              itemBuilder: (context, index) {
-                final item = _todoItems[index];
-                return ListTile(
-                  leading: const Icon(Icons.check_box_outline_blank),
-                  title: Text(item.title),
-                  subtitle: item.dueDate != null
-                      ? Text('⏰ ${item.dueDate}')
-                      : item.description != null
-                          ? Text(item.description!)
-                          : null,
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () => _removeTodoItem(index),
-                  ),
-                );
-              },
+    return Stack(
+      children: [
+        Container(
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage('assets/images/background.png'),
+              fit: BoxFit.cover,
             ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAddTodoDialog,
-        label: const Text('เพิ่ม'),
-        icon: const Icon(Icons.add),
-      ),
+          ),
+        ),
+        Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            title: const Text('📋 To-Do List'),
+            centerTitle: true,
+          ),
+          body: _todoItems.isEmpty
+              ? const Center(
+                  child: Text(
+                    'ยังไม่มีรายการ',
+                    style: TextStyle(fontSize: 18, color: Colors.grey),
+                  ),
+                )
+              : ListView.separated(
+                  itemCount: _todoItems.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 4),
+                  itemBuilder: (context, index) {
+                    final item = _todoItems[index];
+                    return Card(
+                      color: Colors.white.withAlpha((0.50 * 255).toInt()),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      margin:
+                          const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      child: ListTile(
+                        leading: _getTimeIcon(item), // ✅ ใช้ฟังก์ชันใหม่แทน
+                        title: Text(
+                          item.title,
+                          style: const TextStyle(
+                              fontSize: 18, 
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black),
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (item.description != null &&
+                                item.description!.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.notes,
+                                        size: 16, color: Colors.black),
+                                    const SizedBox(width: 4),
+                                    Expanded(
+                                      child: Text(
+                                        item.description!,
+                                        style: const TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.black),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            if (item.dueDate != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.alarm,
+                                        size: 16, color: Colors.redAccent),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      _dateFormat.format(item.dueDate!),
+                                      style: const TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.black),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () => _removeTodoItem(index),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+          floatingActionButton: FloatingActionButton.extended(
+            onPressed: _showAddTodoDialog,
+            label: const Text('เพิ่ม'),
+            icon: const Icon(Icons.add),
+          ),
+        ),
+      ],
     );
   }
 }
 
-//
-// ---------------- DATETIME PICKER ----------------
-//
 Future<DateTime?> showDateTimePicker(BuildContext context) async {
   final date = await showDatePicker(
     context: context,
