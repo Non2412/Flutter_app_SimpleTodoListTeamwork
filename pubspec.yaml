@@ -10,10 +10,23 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # สำหรับแจ้งเตือนท้องถิ่น
+  flutter_local_notifications: ^17.0.0
+
+  # สำหรับจัดการโซนเวลา
+  timezone: ^0.9.2
+
+  # สำหรับฟอร์แมตวันที่ (DateFormat)
+  intl: ^0.18.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
+
   flutter_lints: ^5.0.0
 
 flutter:
   uses-material-design: true
+
+  assets:
+    - assets/images/
