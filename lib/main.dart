@@ -5,6 +5,7 @@ import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:intl/intl.dart';
 import 'theme.dart';
+import 'login.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -58,7 +59,7 @@ class MainApp extends StatelessWidget {
     return MaterialApp(
       title: 'ToDo List',
       theme: myAppTheme,
-      home: const TodoListScreen(),
+      home: const LoingPage(), // ✅ เปลี่ยนจาก TodoListScreen เป็น LoingPage
       debugShowCheckedModeBanner: false,
     );
   }
@@ -103,12 +104,13 @@ class _TodoListScreenState extends State<TodoListScreen> {
     if (newItem.dueDate != null) {
       await NotificationService().schedule(newItem.title, newItem.dueDate!, index);
       if (mounted) {
-        _scheduleSnackBar(context, newItem);
+        _scheduleSnackBar(newItem);
       }
     }
 
     if (mounted) {
-      Navigator.of(context).pop();
+      final navigator = Navigator.of(context); // ✅ เก็บ context ก่อน async
+      navigator.pop();
       Future.delayed(const Duration(milliseconds: 300), () {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -192,7 +194,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
     );
   }
 
-  void _scheduleSnackBar(BuildContext context, TodoItem item) {
+  void _scheduleSnackBar(TodoItem item) {
     if (item.dueDate == null) return;
 
     final now = DateTime.now();
@@ -261,6 +263,19 @@ class _TodoListScreenState extends State<TodoListScreen> {
           appBar: AppBar(
             title: const Text('📋 To-Do List'),
             centerTitle: true,
+            actions: [
+              // ✅ เพิ่มปุ่ม Logout
+              IconButton(
+                icon: const Icon(Icons.logout),
+                onPressed: () {
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (context) => const LoingPage()),
+                    (route) => false,
+                  );
+                },
+                tooltip: 'ออกจากระบบ',
+              ),
+            ],
           ),
           body: _todoItems.isEmpty
               ? const Center(
