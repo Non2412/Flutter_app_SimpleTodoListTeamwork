@@ -24,7 +24,7 @@ class _LoingPageState extends State<LoingPage> {
     if (_formKey.currentState!.validate()) {
       // Replace this with your authentication logic
       if (_usernameController.text == 'admin' &&
-          _passwordController.text == '1234') {
+          _passwordController.text == '123456') {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => const TodoListScreen()),
           (route) => false,
@@ -52,7 +52,9 @@ class _LoingPageState extends State<LoingPage> {
         child: Center(
           child: Card(
             elevation: 8,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
             margin: const EdgeInsets.symmetric(horizontal: 24),
             child: Padding(
               padding: const EdgeInsets.all(24.0),
@@ -63,7 +65,13 @@ class _LoingPageState extends State<LoingPage> {
                   children: [
                     const Icon(Icons.lock, size: 64, color: Colors.indigo),
                     const SizedBox(height: 16),
-                    const Text('Welcome Back!', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                    const Text(
+                      'Welcome Back!',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     TextFormField(
                       controller: _usernameController,
                       decoration: const InputDecoration(
@@ -137,7 +145,8 @@ class _LoingPageState extends State<LoingPage> {
                           onPressed: () {
                             Navigator.of(context).push(
                               MaterialPageRoute(
-                                builder: (context) => const ForgotPasswordPage(),
+                                builder: (context) =>
+                                    const ForgotPasswordPage(),
                               ),
                             );
                           },
