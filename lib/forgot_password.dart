@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'login.dart'; // Import เพื่อใช้ UserStorage
 
 class ForgotPasswordPage extends StatefulWidget {
   const ForgotPasswordPage({super.key});
@@ -13,12 +14,19 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
   void _submit() {
     if (_formKey.currentState!.validate()) {
-      // TODO: Implement forgot password logic
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('หากมีบัญชีนี้ ระบบจะส่งวิธีรีเซ็ตรหัสผ่านไปให้'),
-        ),
-      );
+      if (UserStorage.emailExists(_emailController.text)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ ระบบจะส่งวิธีรีเซ็ตรหัสผ่านไปยังอีเมลของคุณ'),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('❌ ไม่พบอีเมลนี้ในระบบ'),
+          ),
+        );
+      }
       Navigator.of(context).pop();
     }
   }
@@ -56,18 +64,18 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
                         decoration: const InputDecoration(
-                          labelText: 'Gmail',
+                          labelText: 'อีเมล',
                           hintText: 'yourname@gmail.com',
                           border: OutlineInputBorder(),
                           prefixIcon: Icon(Icons.email),
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'กรุณากรอก Gmail';
+                            return 'กรุณากรอกอีเมล';
                           }
-                          final emailRegex = RegExp(r'^[\w-\.]+@gmail\.com');
+                          final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
                           if (!emailRegex.hasMatch(value)) {
-                            return 'กรุณากรอก Gmail ให้ถูกต้อง';
+                            return 'กรุณากรอกอีเมลให้ถูกต้อง';
                           }
                           return null;
                         },

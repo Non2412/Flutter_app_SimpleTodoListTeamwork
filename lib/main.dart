@@ -57,9 +57,9 @@ class MainApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'ToDo List',
+      title: 'แจ้งเตือน',
       theme: myAppTheme,
-      home: const LoingPage(), // ✅ เปลี่ยนจาก TodoListScreen เป็น LoingPage
+      home: const LoginPage(), // ✅ เริ่มต้นที่หน้า Login
       debugShowCheckedModeBanner: false,
     );
   }
@@ -269,7 +269,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
                 icon: const Icon(Icons.logout),
                 onPressed: () {
                   Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (context) => const LoingPage()),
+                    MaterialPageRoute(builder: (context) => const LoginPage()),
                     (route) => false,
                   );
                 },

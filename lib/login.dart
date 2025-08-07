@@ -3,14 +3,42 @@ import 'register.dart';
 import 'forgot_password.dart';
 import 'main.dart';
 
-class LoingPage extends StatefulWidget {
-  const LoingPage({super.key});
-
-  @override
-  State<LoingPage> createState() => _LoingPageState();
+// User data storage (In production, use SQLite or SharedPreferences)
+class UserStorage {
+  static final Map<String, Map<String, String>> _users = {};
+  
+  static bool registerUser(String username, String email, String password) {
+    if (_users.containsKey(username)) {
+      return false; // User already exists
+    }
+    _users[username] = {
+      'email': email,
+      'password': password,
+    };
+    return true;
+  }
+  
+  static bool validateUser(String username, String password) {
+    return _users.containsKey(username) && _users[username]!['password'] == password;
+  }
+  
+  static bool userExists(String username) {
+    return _users.containsKey(username);
+  }
+  
+  static bool emailExists(String email) {
+    return _users.values.any((user) => user['email'] == email);
+  }
 }
 
-class _LoingPageState extends State<LoingPage> {
+class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
+
+  @override
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
@@ -22,16 +50,14 @@ class _LoingPageState extends State<LoingPage> {
       _errorMessage = null;
     });
     if (_formKey.currentState!.validate()) {
-      // Replace this with your authentication logic
-      if (_usernameController.text == 'admin' &&
-          _passwordController.text == '123456') {
+      if (UserStorage.validateUser(_usernameController.text, _passwordController.text)) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => const TodoListScreen()),
           (route) => false,
         );
       } else {
         setState(() {
-          _errorMessage = 'Invalid username or password';
+          _errorMessage = 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
         });
       }
     }
@@ -40,7 +66,7 @@ class _LoingPageState extends State<LoingPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Login Page')),
+      appBar: AppBar(title: const Text('เข้าสู่ระบบ')),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -66,21 +92,23 @@ class _LoingPageState extends State<LoingPage> {
                     const Icon(Icons.lock, size: 64, color: Colors.indigo),
                     const SizedBox(height: 16),
                     const Text(
-                      'Welcome Back!',
+                      'ยินดีต้อนรับ!',
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
+                    const SizedBox(height: 16),
                     TextFormField(
                       controller: _usernameController,
                       decoration: const InputDecoration(
-                        labelText: 'Username',
+                        labelText: 'ชื่อผู้ใช้',
                         border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.person),
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please enter your username';
+                          return 'กรุณากรอกชื่อผู้ใช้';
                         }
                         return null;
                       },
@@ -90,8 +118,9 @@ class _LoingPageState extends State<LoingPage> {
                       controller: _passwordController,
                       obscureText: _obscurePassword,
                       decoration: InputDecoration(
-                        labelText: 'Password',
+                        labelText: 'รหัสผ่าน',
                         border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.lock),
                         suffixIcon: IconButton(
                           icon: Icon(
                             _obscurePassword
@@ -107,7 +136,7 @@ class _LoingPageState extends State<LoingPage> {
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please enter your password';
+                          return 'กรุณากรอกรหัสผ่าน';
                         }
                         return null;
                       },
@@ -117,7 +146,11 @@ class _LoingPageState extends State<LoingPage> {
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: _login,
-                        child: const Text('Login'),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Text('เข้าสู่ระบบ', style: TextStyle(fontSize: 18)),
                       ),
                     ),
                     if (_errorMessage != null) ...[

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'login.dart'; // Import เพื่อใช้ UserStorage
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -14,11 +15,14 @@ class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
   String? _errorMessage;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   void _register() {
     setState(() {
       _errorMessage = null;
     });
+    
     if (_formKey.currentState!.validate()) {
       if (_passwordController.text != _confirmPasswordController.text) {
         setState(() {
@@ -26,11 +30,37 @@ class _RegisterPageState extends State<RegisterPage> {
         });
         return;
       }
-      // TODO: Implement registration logic
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('สมัครสมาชิกสำเร็จ!')),
+      
+      if (UserStorage.userExists(_usernameController.text)) {
+        setState(() {
+          _errorMessage = 'ชื่อผู้ใช้นี้มีคนใช้แล้ว';
+        });
+        return;
+      }
+      
+      if (UserStorage.emailExists(_emailController.text)) {
+        setState(() {
+          _errorMessage = 'อีเมลนี้มีคนใช้แล้ว';
+        });
+        return;
+      }
+      
+      bool success = UserStorage.registerUser(
+        _usernameController.text,
+        _emailController.text,
+        _passwordController.text,
       );
-      Navigator.of(context).pop();
+      
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('✅ สมัครสมาชิกสำเร็จ!')),
+        );
+        Navigator.of(context).pop();
+      } else {
+        setState(() {
+          _errorMessage = 'เกิดข้อผิดพลาดในการสมัครสมาชิก';
+        });
+      }
     }
   }
 
@@ -66,13 +96,16 @@ class _RegisterPageState extends State<RegisterPage> {
                       TextFormField(
                         controller: _usernameController,
                         decoration: const InputDecoration(
-                          labelText: 'Username',
+                          labelText: 'ชื่อผู้ใช้',
                           border: OutlineInputBorder(),
                           prefixIcon: Icon(Icons.person),
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'กรุณากรอกชื่อผู้ใช้';
+                          }
+                          if (value.length < 3) {
+                            return 'ชื่อผู้ใช้ต้องมีอย่างน้อย 3 ตัวอักษร';
                           }
                           return null;
                         },
@@ -82,18 +115,18 @@ class _RegisterPageState extends State<RegisterPage> {
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
                         decoration: const InputDecoration(
-                          labelText: 'Gmail',
+                          labelText: 'อีเมล',
                           hintText: 'yourname@gmail.com',
                           border: OutlineInputBorder(),
                           prefixIcon: Icon(Icons.email),
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'กรุณากรอก Gmail';
+                            return 'กรุณากรอกอีเมล';
                           }
-                          final emailRegex = RegExp(r'^[\w-\.]+@gmail\.com');
+                          final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
                           if (!emailRegex.hasMatch(value)) {
-                            return 'กรุณากรอก Gmail ให้ถูกต้อง';
+                            return 'กรุณากรอกอีเมลให้ถูกต้อง';
                           }
                           return null;
                         },
@@ -101,15 +134,26 @@ class _RegisterPageState extends State<RegisterPage> {
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _passwordController,
-                        obscureText: true,
-                        decoration: const InputDecoration(
-                          labelText: 'Password',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.lock),
+                        obscureText: _obscurePassword,
+                        decoration: InputDecoration(
+                          labelText: 'รหัสผ่าน',
+                          border: const OutlineInputBorder(),
+                          prefixIcon: const Icon(Icons.lock),
+                          suffixIcon: IconButton(
+                            icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
+                            onPressed: () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
+                            },
+                          ),
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'กรุณากรอกรหัสผ่าน';
+                          }
+                          if (value.length < 6) {
+                            return 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
                           }
                           return null;
                         },
@@ -117,11 +161,19 @@ class _RegisterPageState extends State<RegisterPage> {
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _confirmPasswordController,
-                        obscureText: true,
-                        decoration: const InputDecoration(
+                        obscureText: _obscureConfirmPassword,
+                        decoration: InputDecoration(
                           labelText: 'ยืนยันรหัสผ่าน',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.lock_outline),
+                          border: const OutlineInputBorder(),
+                          prefixIcon: const Icon(Icons.lock_outline),
+                          suffixIcon: IconButton(
+                            icon: Icon(_obscureConfirmPassword ? Icons.visibility : Icons.visibility_off),
+                            onPressed: () {
+                              setState(() {
+                                _obscureConfirmPassword = !_obscureConfirmPassword;
+                              });
+                            },
+                          ),
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
