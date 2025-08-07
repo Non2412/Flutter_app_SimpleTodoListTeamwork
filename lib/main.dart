@@ -10,7 +10,7 @@ import 'login.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   tz.initializeTimeZones();
-  await NotificationService().init();
+  await NotificationService().init(); // ✅ ensure plugin is ready
   runApp(const MainApp());
 }
 
@@ -21,7 +21,12 @@ class NotificationService {
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
     const ios = DarwinInitializationSettings();
     const settings = InitializationSettings(android: android, iOS: ios);
+
     await _notification.initialize(settings);
+
+    // ✅ ขอ permission สำหรับ Android 13+
+    final androidPlugin = _notification.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
   }
 
   Future<void> schedule(String title, DateTime time, int id) async {
@@ -30,24 +35,23 @@ class NotificationService {
       'ToDo Notification',
       importance: Importance.max,
       priority: Priority.high,
-      sound: RawResourceAndroidNotificationSound('notification'),
+      sound: RawResourceAndroidNotificationSound('notification'), // ตรวจว่ามี notification.mp3 ที่ res/raw
       playSound: true,
     );
 
     const iosDetails = DarwinNotificationDetails(
       sound: 'notification.wav',
     );
-
-    await _notification.zonedSchedule(
-      id,
-      '⏰ ถึงเวลาแล้ว!',
-      title,
-      tz.TZDateTime.from(time, tz.local),
-      const NotificationDetails(android: androidDetails, iOS: iosDetails),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-    );
+await _notification.zonedSchedule(
+  id,
+  '⏰ ถึงเวลาแล้ว!',
+  title,
+  tz.TZDateTime.from(time, tz.local),
+  const NotificationDetails(android: androidDetails, iOS: iosDetails),
+  uiLocalNotificationDateInterpretation:
+      UILocalNotificationDateInterpretation.absoluteTime,
+  androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+);
   }
 }
 
